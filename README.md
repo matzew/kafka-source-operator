@@ -13,10 +13,10 @@
 
 1. Install the operator
 
-   To install from source code, run the command:
+   To install run the command:
 
    ```
-   ko apply -f config/
+   kubectl apply -f config/
    ```
 
 1. Install the
@@ -36,7 +36,6 @@ metadata:
   namespace: knative-sources
 EOF
 ```
-
 
 Apply some config for the source, like
 
