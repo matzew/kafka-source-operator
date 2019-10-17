@@ -1,12 +1,8 @@
 # Knative Kafka Source Operator
 
-Knative Eventing Operator is a project aiming to deploy and manage Knative
-Eventing in an automated way.
+>NOTE: POC... not more
 
-The following steps will install
-[Knative Eventing](https://github.com/knative/Eventing) and configure it
-appropriately for your cluster in the `knative-eventing` namespace. Please make
-sure the [prerequisites](#Prerequisites) are installed first.
+1. Checkout this fork to `$GOPATH/src/knative.dev/eventing-operator`
 
 1. Install the
    [KnativeEventing CRD](config/crds/eventing_v1alpha1_knativeeventing_crd.yaml)
@@ -23,15 +19,6 @@ sure the [prerequisites](#Prerequisites) are installed first.
    ko apply -f config/
    ```
 
-   To install from an existing image, change the value of `image` into
-   `quay.io/openshift-knative/knative-eventing-operator:v0.6.0` or any other
-   valid operator image in the file config/operator.yaml, and run the following
-   command:
-
-   ```
-   kubectl apply -f config/
-   ```
-
 1. Install the
    [Eventing custom resource](#the-eventing-custom-resource)
 
@@ -40,66 +27,33 @@ cat <<-EOF | kubectl apply -f -
 apiVersion: v1
 kind: Namespace
 metadata:
- name: knative-eventing
+ name: knative-sources
 ---
 apiVersion: operator.knative.dev/v1alpha1
 kind: Eventing
 metadata:
   name: knative-eventing
-  namespace: knative-eventing
+  namespace: knative-sources
 EOF
 ```
 
-Please refer to [Building the Operator Image](#building-the-operator-image) to
-build your own image.
 
-## The `Eventing` Custom Resource
+Apply some config for the source, like
 
-The installation of Knative Eventing is triggered by the creation of a
-`Eventing` custom resource (CR) as defined by
-[this CRD](config/crds/eventing_v1alpha1_knativeeventing_crd.yaml). The operator
-will deploy Knative Eventing in the same namespace containing the
-`Eventing` CR, and this CR will trigger the installation, reconfiguration,
-or removal of the knative eventing resources.
-
-The following are all equivalent:
-
-```
-kubectl get eventings.operator.knative.dev -oyaml
-kubectl get eventing -oyaml
-```
-
-To uninstall Knative Eventing, simply delete the `Eventing` resource.
-
-```
-kubectl delete ke --all
+```yaml
+apiVersion: sources.eventing.knative.dev/v1alpha1
+kind: KafkaSource
+metadata:
+  name: kafka-source
+spec:
+  consumerGroup: knative-groupp
+  bootstrapServers: my-cluster-kafka-bootstrap.kafka:9092
+  topics: mytopic
+  sink:
+    apiVersion: serving.knative.dev/v1alpha1
+    kind: Service
+    name: event-display
 ```
 
-Pass `--help` for further details on the various subcommands
+And use the Eventing Kafka Source without Eventing but with `ksvc` or vanilla k8s `service` objects....
 
-## Building the Operator Image
-
-To build the operator with `ko`, configure your an environment variable
-`KO_DOCKER_REPO` as the docker repository to which developer images should be
-pushed (e.g. `gcr.io/[gcloud-project]`, `docker.io/[username]`,
-`quay.io/[repo-name]`, etc).
-
-Install `ko` with the following command, if it is not available on your machine:
-
-```
-go get -u github.com/google/ko/cmd/ko
-```
-
-Then, build the operator image:
-
-```
-ko publish knative.dev/eventing-operator/cmd/manager -t $VERSION
-```
-
-You need to access the image by the name
-`KO_DOCKER_REPO/manager-[md5]:$VERSION`, which you are able to find in the
-output of the above `ko publish` command.
-
-The image should match what's in [config/operator.yaml](config/operator.yaml)
-and the `$VERSION` should match [version.go](version/version.go) and correspond
-to the contents of [config/](config/).
