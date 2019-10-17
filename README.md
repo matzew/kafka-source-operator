@@ -1,4 +1,4 @@
-# Knative Eventing Operator
+# Knative Kafka Source Operator
 
 Knative Eventing Operator is a project aiming to deploy and manage Knative
 Eventing in an automated way.
