@@ -16,7 +16,7 @@
    To install run the command:
 
    ```
-   kubectl apply -f config/
+   ko apply -f config/
    ```
 
 1. Install the
@@ -54,5 +54,62 @@ spec:
     name: event-display
 ```
 
-And use the Eventing Kafka Source without Eventing but with `ksvc` or vanilla k8s `service` objects....
+And use the Eventing Kafka Source without Eventing but with `ksvc` or vanilla k8s `service` objects - for this see hello-display https://knative.dev/development/eventing/getting-started/#creating-event-consumers
 
+```bash
+kubectl apply --filename - << END
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-display
+spec:
+  replicas: 1
+  selector:
+    matchLabels: &labels
+      app: hello-display
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      containers:
+        - name: event-display
+          # Source code: https://github.com/knative/eventing-contrib/blob/release-0.6/cmd/event_display/main.go
+          image: gcr.io/knative-releases/github.com/knative/eventing-sources/cmd/event_display@sha256:37ace92b63fc516ad4c8331b6b3b2d84e4ab2d8ba898e387c0b6f68f0e3081c4
+
+---
+
+# Service pointing at the previous Deployment. This will be the target for event
+# consumption.
+  kind: Service
+  apiVersion: v1
+  metadata:
+    name: hello-display
+  spec:
+    selector:
+      app: hello-display
+    ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+END
+```
+
+
+and event source that uses hello-display
+
+```
+kubectl  apply --filename - << END
+apiVersion: sources.eventing.knative.dev/v1alpha1
+kind: KafkaSource
+metadata:
+  name: kafka-source-hello
+spec:
+  consumerGroup: knative-groupp
+  bootstrapServers: my-cluster-kafka-bootstrap.kafka:9092
+  topics: mytopic
+  sink:
+    apiVersion: v1
+    kind: Service
+    name: hello-display
+END
+```
